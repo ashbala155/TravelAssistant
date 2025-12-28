@@ -37,14 +37,16 @@ def extract_text_from_file(uploaded_file):
 
 if analyze and query:
     try:
-        context = extract_text_from_file(uploaded_file)
+        if uploaded_file:
+         context = extract_text_from_file(uploaded_file)
+        else:
+            context = "give appropriate travel recommendations"
 
         prompt = f"""You are a helpful travel assistant.
         Use the following travel guide context to answer the question.
-        If the answer is not found, say you don't know — don’t make it up.
 
         Context:
-        {context if context else 'give appropriate travel recommendations'}
+        {context}
 
         Question:
         {query}
