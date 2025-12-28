@@ -10,16 +10,16 @@ load_dotenv()
 
 st.set_page_config(page_title="AI Travel Itinerary Assistant", page_icon="✈️", layout="centered")
 
-st.title("✈️ AI Travel Itinerary Assistant")
+st.title("🌴🏖️🚢 AI Travel Itinerary Assistant 🏄🏻✈️🧳")
 st.markdown("Ask about any travel destination - we'll find the best suggestions for you!")
 
 
 #OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
-st.subheader("❓ Ask Your Question")
+st.subheader("❓Ask your travel question or give us a destination for itinerary")
 uploaded_file = st.file_uploader("Upload a travel guide if you have any (optional) PDF/TXT", type=["pdf", "txt"])
-query = st.text_input("Enter your travel question (e.g., Best places to visit in Paris):")
+query = st.text_input("Enter your travel question (e.g., Plan a 4 day itinerary for Rome/ Best places to visit in Paris):")
 analyze = st.button("Ask")
 
 def extract_text_from_pdf(pdf_file):
@@ -65,7 +65,6 @@ if analyze and query:
             temperature=0.7,
             max_tokens=1000
         )
-        st.markdown("### Analysis Results")
         st.markdown(response.choices[0].message.content)
     
     except Exception as e:
