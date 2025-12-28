@@ -13,7 +13,7 @@ st.set_page_config(page_title="AI Travel Itinerary Assistant", page_icon="✈️
 page_element="""
 <style>
 [data-testid="stAppViewContainer"]{
-  background-image: url("https://plus.unsplash.com/premium_photo-1681487892519-d197931571be?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+  background-image: url("https://images.unsplash.com/photo-1500964757637-c85e8a162699?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
   background-size: cover;
 }
 </style>
