@@ -1,28 +1,24 @@
 import streamlit as st
 import PyPDF2
 import io
-import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from datetime import datetime
 import base64
+import re
 
 load_dotenv()
 
 st.set_page_config(page_title="AI Travel Itinerary Assistant", page_icon="✈️", layout="centered")
 
-# Background Image
-st.markdown(
-    """
-    <style>
-    [data-testid="stAppViewContainer"]{
-      background-image: url("https://images.unsplash.com/photo-1500964757637-c85e8a162699?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
-      background-size: cover;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Background image
+st.markdown("""
+<style>
+[data-testid="stAppViewContainer"]{
+  background-image: url("https://images.unsplash.com/photo-1500964757637-c85e8a162699?q=80&w=1803&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+  background-size: cover;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🏄🏻🏖️🧳 AI Travel Itinerary Assistant")
 st.markdown("Ask about any travel destination - we'll find the best suggestions for you!")
@@ -30,16 +26,14 @@ st.markdown("Ask about any travel destination - we'll find the best suggestions 
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 # -----------------------------
-# User Inputs
+# User inputs
 # -----------------------------
-st.subheader("❓ Ask Your Travel Question or Give a Destination")
-uploaded_files = st.file_uploader("Upload travel guides (PDF/TXT, optional)", type=["pdf","txt"], accept_multiple_files=True)
+uploaded_file = st.file_uploader("Upload a travel guide (optional PDF/TXT)", type=["pdf", "txt"])
 query = st.text_input("Enter your travel question (e.g., Plan a 4-day itinerary for Rome / Best places to visit Paris):")
-preferences = st.text_input("Your travel preferences (optional, e.g., budget, adventure, relaxation, food):")
 analyze = st.button("Ask AI")
 
 # -----------------------------
-# PDF/TXT Text Extraction
+# PDF/TXT text extraction
 # -----------------------------
 def extract_text_from_pdf(pdf_file):
     pdf_reader = PyPDF2.PdfReader(pdf_file)
@@ -53,18 +47,37 @@ def extract_text_from_file(uploaded_file):
         return extract_text_from_pdf(io.BytesIO(uploaded_file.read()))
     return uploaded_file.read().decode("utf-8")
 
-def combine_uploaded_files(files):
-    combined_text = ""
-    for f in files:
-        combined_text += extract_text_from_file(f) + "\n"
-    return combined_text if combined_text else "give appropriate travel recommendations"
+# -----------------------------
+# Format AI text nicely
+# -----------------------------
+def format_itinerary_text(text):
+    # Split by lines
+    lines = text.splitlines()
+    formatted_lines = []
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        # Bold Day headings
+        if re.match(r"(?i)day\s*\d+", line):
+            formatted_lines.append(f"**{line}**  \n")
+        # Bold sections like Restaurants, Activities, Tips
+        elif re.match(r"(?i)(restaurants|activities|places|tips|budget)", line):
+            formatted_lines.append(f"**{line}**  \n")
+        # Bullet points
+        elif line.startswith("-") or line.startswith("*"):
+            formatted_lines.append(f"• {line[1:].strip()}  \n")
+        else:
+            formatted_lines.append(f"{line}  \n")
+    return "".join(formatted_lines)
 
 # -----------------------------
-# AI Request
+# AI request
 # -----------------------------
 if analyze and query:
     try:
-        context = combine_uploaded_files(uploaded_files) if uploaded_files else "give appropriate travel recommendations"
+        context = extract_text_from_file(uploaded_file) if uploaded_file else "give appropriate travel recommendations"
 
         prompt = f"""
 You are a professional travel planner. Use the following context to answer the user's question.
@@ -72,24 +85,19 @@ You are a professional travel planner. Use the following context to answer the u
 Context:
 {context}
 
-User Preferences: {preferences}
-
 Question:
 {query}
 
-Please provide:
-1. A structured day-by-day itinerary.
-2. Estimated budget (if possible).
-3. Suggested places, restaurants, activities.
-4. Travel tips (packing, local customs, safety).
-Format your answer with clear headings and bullet points.
+Please provide a structured day-by-day itinerary, suggested places, restaurants, activities, and travel tips.
+Use clear headings and bullet points.
+Answer:
 """
 
         client = OpenAI(api_key=OPENAI_API_KEY)
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert travel itinerary planner with years of experience."},
+                {"role": "system", "content": "You are an expert travel itinerary planner."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -97,12 +105,12 @@ Format your answer with clear headings and bullet points.
         )
 
         ai_text = response.choices[0].message.content
-        st.markdown("### 🗺 AI-Generated Travel Itinerary")
-        st.markdown(ai_text.replace("\n", "  \n"))
+        formatted_text = format_itinerary_text(ai_text)
 
-        # -----------------------------
-        # Download Option
-        # -----------------------------
+        st.markdown("### 🗺 AI-Generated Travel Itinerary")
+        st.markdown(formatted_text, unsafe_allow_html=True)
+
+        # Download option
         b64 = base64.b64encode(ai_text.encode()).decode()
         href = f'<a href="data:file/txt;base64,{b64}" download="itinerary.txt">💾 Download Itinerary as TXT</a>'
         st.markdown(href, unsafe_allow_html=True)
