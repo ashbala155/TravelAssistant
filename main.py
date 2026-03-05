@@ -4,7 +4,6 @@ import io
 from openai import OpenAI
 from dotenv import load_dotenv
 import base64
-import re
 
 load_dotenv()
 
@@ -28,7 +27,7 @@ OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 # -----------------------------
 # User inputs
 # -----------------------------
-uploaded_file = st.file_uploader("Upload a travel guide (optional PDF/TXT)", type=["pdf", "txt"])
+uploaded_file = st.file_uploader("Upload a travel guide if you have any (optional) PDF/TXT", type=["pdf", "txt"])
 query = st.text_input("Enter your travel question (e.g., Plan a 4-day itinerary for Rome / Best places to visit Paris):")
 analyze = st.button("Ask AI")
 
@@ -48,31 +47,6 @@ def extract_text_from_file(uploaded_file):
     return uploaded_file.read().decode("utf-8")
 
 # -----------------------------
-# Format AI text nicely
-# -----------------------------
-def format_itinerary_text(text):
-    # Split by lines
-    lines = text.splitlines()
-    formatted_lines = []
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        # Bold Day headings
-        if re.match(r"(?i)day\s*\d+", line):
-            formatted_lines.append(f"**{line}**  \n")
-        # Bold sections like Restaurants, Activities, Tips
-        elif re.match(r"(?i)(restaurants|activities|places|tips|budget)", line):
-            formatted_lines.append(f"**{line}**  \n")
-        # Bullet points
-        elif line.startswith("-") or line.startswith("*"):
-            formatted_lines.append(f"• {line[1:].strip()}  \n")
-        else:
-            formatted_lines.append(f"{line}  \n")
-    return "".join(formatted_lines)
-
-# -----------------------------
 # AI request
 # -----------------------------
 if analyze and query:
@@ -80,7 +54,8 @@ if analyze and query:
         context = extract_text_from_file(uploaded_file) if uploaded_file else "give appropriate travel recommendations"
 
         prompt = f"""
-You are a professional travel planner. Use the following context to answer the user's question.
+You are a helpful travel assistant.
+Use the following travel guide context to answer the question.
 
 Context:
 {context}
@@ -88,8 +63,7 @@ Context:
 Question:
 {query}
 
-Please provide a structured day-by-day itinerary, suggested places, restaurants, activities, and travel tips.
-Use clear headings and bullet points.
+Please provide your analysis in a clear, structured format with specific recommendations.
 Answer:
 """
 
@@ -97,20 +71,18 @@ Answer:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert travel itinerary planner."},
+                {"role": "system", "content": "You are an expert travel itinerary planner with years of experience as a travel agent."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=1500
+            max_tokens=1000
         )
 
         ai_text = response.choices[0].message.content
-        formatted_text = format_itinerary_text(ai_text)
-
         st.markdown("### 🗺 AI-Generated Travel Itinerary")
-        st.markdown(formatted_text, unsafe_allow_html=True)
+        st.markdown(ai_text.replace("\n", "  \n"))
 
-        # Download option
+        # Download as TXT
         b64 = base64.b64encode(ai_text.encode()).decode()
         href = f'<a href="data:file/txt;base64,{b64}" download="itinerary.txt">💾 Download Itinerary as TXT</a>'
         st.markdown(href, unsafe_allow_html=True)
